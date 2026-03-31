@@ -1,46 +1,153 @@
 import { motion } from 'framer-motion';
 import { PipelineStage } from '@/lib/types';
-import { CheckCircle2, Loader2, Circle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Circle, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface Props {
   stages: PipelineStage[];
+  parallelExecution?: boolean;
 }
 
-const stageIcons = {
-  idle: <Circle className="w-4 h-4 text-muted-foreground" />,
-  processing: <Loader2 className="w-4 h-4 text-primary animate-spin" />,
-  complete: <CheckCircle2 className="w-4 h-4 text-success" />,
-  error: <AlertCircle className="w-4 h-4 text-destructive" />,
+const stageIcons: Record<string, React.ReactNode> = {
+  idle: <Circle className="w-5 h-5 text-muted-foreground/40" />,
+  processing: <Loader2 className="w-5 h-5 text-primary animate-spin" />,
+  complete: <CheckCircle2 className="w-5 h-5 text-success" />,
+  error: <AlertCircle className="w-5 h-5 text-destructive" />,
 };
 
-export function PipelineVisualizer({ stages }: Props) {
+const stageEmojis: Record<string, string> = {
+  input: '📥',
+  dimensions: '🧩',
+  agent: '🧠',
+  fusion: '🔀',
+  output: '📤',
+};
+
+export function PipelineVisualizer({ stages, parallelExecution }: Props) {
+  const anyProcessing = stages.some(s => s.status === 'processing');
+  const allComplete = stages.every(s => s.status === 'complete');
+
   return (
-    <div className="flex items-center gap-1 overflow-x-auto py-3 px-1">
-      {stages.map((stage, i) => (
-        <div key={stage.id} className="flex items-center">
-          <motion.div
-            initial={false}
-            animate={{
-              scale: stage.status === 'processing' ? 1.05 : 1,
-              opacity: stage.status === 'idle' ? 0.5 : 1,
-            }}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap
-              ${stage.status === 'processing' ? 'bg-primary/10 text-primary border border-primary/20' :
-                stage.status === 'complete' ? 'bg-success/10 text-success border border-success/20' :
-                stage.status === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' :
-                'bg-muted text-muted-foreground border border-transparent'}`}
-          >
-            {stageIcons[stage.status]}
-            <span>{stage.name}</span>
-            {stage.duration && <span className="text-[10px] opacity-70">{stage.duration.toFixed(1)}s</span>}
-          </motion.div>
-          {i < stages.length - 1 && (
-            <div className={`w-6 h-px mx-1 transition-colors ${
-              stages[i + 1].status !== 'idle' ? 'bg-primary/40' : 'bg-border'
-            }`} />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+          <span>Pipeline Flow</span>
+          {anyProcessing && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[10px] text-primary font-normal normal-case tracking-normal flex items-center gap-1"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Processing{parallelExecution ? ' (parallel)' : ''}...
+            </motion.span>
           )}
-        </div>
-      ))}
+          {allComplete && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-[10px] text-success font-normal normal-case tracking-normal"
+            >
+              ✓ Complete
+            </motion.span>
+          )}
+        </h3>
+        {allComplete && (
+          <span className="text-[10px] font-mono text-muted-foreground">
+            Total: {stages.reduce((sum, s) => sum + (s.duration || 0), 0).toFixed(1)}s
+          </span>
+        )}
+      </div>
+
+      {/* Visual Pipeline */}
+      <div className="relative flex items-stretch gap-0 overflow-x-auto pb-1">
+        {stages.map((stage, i) => {
+          const isActive = stage.status === 'processing';
+          const isDone = stage.status === 'complete';
+          const isError = stage.status === 'error';
+
+          return (
+            <div key={stage.id} className="flex items-center flex-1 min-w-0">
+              <motion.div
+                initial={false}
+                animate={{
+                  scale: isActive ? 1.02 : 1,
+                }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className={`relative flex-1 flex flex-col items-center gap-2 px-3 py-3 rounded-xl border transition-all duration-300
+                  ${isActive
+                    ? 'bg-primary/8 border-primary/30 shadow-[0_0_20px_hsl(var(--primary)/0.1)]'
+                    : isDone
+                    ? 'bg-success/5 border-success/20'
+                    : isError
+                    ? 'bg-destructive/5 border-destructive/20'
+                    : 'bg-muted/30 border-transparent'
+                  }`}
+              >
+                {/* Pulse ring on active */}
+                {isActive && (
+                  <motion.div
+                    className="absolute inset-0 rounded-xl border-2 border-primary/20"
+                    initial={{ opacity: 0.5 }}
+                    animate={{ opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">{stageEmojis[stage.id] || '⚙️'}</span>
+                  {stageIcons[stage.status]}
+                </div>
+                <span className={`text-[11px] font-medium text-center leading-tight ${
+                  isActive ? 'text-primary' : isDone ? 'text-success' : 'text-muted-foreground'
+                }`}>
+                  {stage.name}
+                </span>
+                {stage.duration != null && (
+                  <span className="text-[9px] font-mono text-muted-foreground/70">{stage.duration.toFixed(1)}s</span>
+                )}
+              </motion.div>
+
+              {i < stages.length - 1 && (
+                <div className="flex items-center px-1 shrink-0">
+                  <motion.div
+                    initial={false}
+                    animate={{
+                      opacity: stages[i + 1].status !== 'idle' ? 1 : 0.2,
+                      scale: stages[i + 1].status === 'processing' ? 1.2 : 1,
+                    }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ArrowRight className={`w-4 h-4 ${
+                      stages[i + 1].status !== 'idle' ? 'text-primary' : 'text-muted-foreground/30'
+                    }`} />
+                  </motion.div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Parallel indicator for dimensions stage */}
+      {parallelExecution && stages.find(s => s.id === 'dimensions')?.status === 'processing' && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10"
+        >
+          <div className="flex gap-1">
+            {[0, 1, 2, 3].map(i => (
+              <motion.div
+                key={i}
+                className="w-1.5 h-4 rounded-full bg-primary/40"
+                animate={{ scaleY: [0.4, 1, 0.4] }}
+                transition={{ duration: 0.8, delay: i * 0.15, repeat: Infinity }}
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-primary">Processing dimensions in parallel...</span>
+        </motion.div>
+      )}
     </div>
   );
 }
