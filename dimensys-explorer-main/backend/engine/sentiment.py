@@ -6,7 +6,8 @@ import re
 import threading
 from typing import Any, Dict, Optional
 
-from backend.engine.base_dimension import BaseDimension
+from backend.engine.types import Dimension
+from backend.engine.registry import register_dimension
 
 _pipeline_lock = threading.Lock()
 _pipeline: Optional[Any] = None
@@ -30,7 +31,7 @@ def _get_pipeline() -> Any:
         return _pipeline
 
 
-class SentimentDimension(BaseDimension):
+class SentimentDimension(Dimension):
     """Binary sentiment mapped to coarse emotion labels with lexicon refinement."""
 
     @property
@@ -81,3 +82,7 @@ class SentimentDimension(BaseDimension):
             "confidence": min(max(mapped_confidence, 0.0), 1.0),
             "explanation": explanation,
         }
+
+
+# Register the dimension
+register_dimension("sentiment", SentimentDimension)

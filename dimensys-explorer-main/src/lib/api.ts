@@ -9,6 +9,7 @@ export interface AnalyzeApiRequest {
   config?: {
     dimensions: string[];
     parallel: boolean;
+    fusionStrategy: string;
   };
   model?: string;
   /** When true, backend may include debug timings and raw dimension snapshots. */

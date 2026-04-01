@@ -164,6 +164,7 @@ export function usePipeline(config: AppConfig, dimensions: Dimension[]) {
           config: {
             dimensions: backendDims,
             parallel: config.parallelExecution,
+            fusionStrategy: config.fusionStrategy,
           },
           model: config.model,
           debug: config.debugMode,

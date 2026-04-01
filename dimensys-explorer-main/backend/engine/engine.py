@@ -12,9 +12,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.agent.agent import generate
 from backend.config.config_loader import EngineConfig, load_engine_config
-from backend.engine.base_dimension import BaseDimension
+from backend.engine.types import Dimension
 from backend.engine.consistency import apply_consistency_pass
-from backend.engine.registry import DIMENSION_REGISTRY
+from backend.engine.registry import get_dimension, list_dimensions
 from backend.fusion.fusion import fuse
 from backend.models.schemas import AnalyzeConfig, DimensionOutput, FinalResponse
 from backend.utils import cache as response_cache
@@ -24,16 +24,16 @@ from backend.utils.normalize import normalize_conf
 logger = get_logger("dimensys.engine")
 
 
-def _instantiate_dimensions(enabled_keys: List[str]) -> List[BaseDimension]:
-    instances: List[BaseDimension] = []
+def _instantiate_dimensions(enabled_keys: List[str]) -> List[Dimension]:
+    instances: List[Dimension] = []
     for key in enabled_keys:
-        dim_cls = DIMENSION_REGISTRY[key]
+        dim_cls = get_dimension(key)
         instances.append(dim_cls())
     return instances
 
 
 def _safe_run_dimension(
-    dim: BaseDimension,
+    dim: Dimension,
     text: str,
     request_id: str,
     *,
@@ -126,7 +126,7 @@ async def run_analysis(
 
     engine_cfg: EngineConfig = load_engine_config(
         request_config,
-        available_dimension_keys=set(DIMENSION_REGISTRY.keys()),
+        available_dimension_keys=set(list_dimensions()),
     )
     cache_key = response_cache.get_cache_key(text, engine_cfg.enabled_dimensions, engine_cfg.parallel)
     cached_payload = response_cache.get(cache_key)
@@ -171,7 +171,8 @@ async def run_analysis(
 
     logger.debug("[%s] Fusion step start", request_id)
     t_fusion0 = time.perf_counter()
-    final_text = fuse(dim_results, agent_dict)
+    fusion_strategy = getattr(engine_cfg, 'fusion_strategy', 'weighted')
+    final_text = fuse(dim_results, agent_dict, strategy=fusion_strategy)
     fusion_time = time.perf_counter() - t_fusion0
     logger.debug("[%s] Fusion step done", request_id)
 

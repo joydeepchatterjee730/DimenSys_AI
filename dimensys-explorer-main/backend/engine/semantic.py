@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from backend.engine.base_dimension import BaseDimension
+from backend.engine.types import Dimension
+from backend.engine.registry import register_dimension
 
 _model_lock = threading.Lock()
 _model: Optional[Any] = None
@@ -69,7 +70,7 @@ def _get_model_and_topics() -> Tuple[Any, np.ndarray, List[str]]:
     return _model, _topic_matrix, _topic_labels
 
 
-class SemanticDimension(BaseDimension):
+class SemanticDimension(Dimension):
     """Topic classification via embedding similarity plus simple keyword extraction."""
 
     @property
@@ -132,3 +133,7 @@ class SemanticDimension(BaseDimension):
                 "confidence": 0.5,
                 "explanation": explanation,
             }
+
+
+# Register the dimension
+register_dimension("semantic", SemanticDimension)

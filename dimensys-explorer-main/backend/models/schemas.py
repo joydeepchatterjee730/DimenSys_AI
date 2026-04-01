@@ -13,6 +13,7 @@ class AnalyzeConfig(BaseModel):
         description="Dimension names to run (subset of registry keys).",
     )
     parallel: bool = Field(default=True, description="Run dimensions in parallel when True.")
+    fusion_strategy: str = Field(default="weighted", description="Fusion strategy: weighted, attention, hierarchical, ensemble.")
 
 
 class AnalyzeRequest(BaseModel):

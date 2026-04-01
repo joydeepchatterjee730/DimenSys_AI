@@ -6,7 +6,8 @@ import re
 from typing import Any, Dict
 
 from backend.agent.nim_client import get_api_key, sync_chat_completion
-from backend.engine.base_dimension import BaseDimension
+from backend.engine.types import Dimension
+from backend.engine.registry import register_dimension
 from backend.utils.logger import get_logger
 
 logger = get_logger("dimensys.intent")
@@ -79,7 +80,7 @@ def _rule_based_intent(text: str) -> tuple[str, float, str]:
     )
 
 
-class IntentDimension(BaseDimension):
+class IntentDimension(Dimension):
     """NIM-based intent tag with rule fallback when API is unavailable."""
 
     @property
@@ -120,3 +121,7 @@ class IntentDimension(BaseDimension):
                 "confidence": conf,
                 "explanation": f"{expl} NIM error: {exc}",
             }
+
+
+# Register the dimension
+register_dimension("intent", IntentDimension)

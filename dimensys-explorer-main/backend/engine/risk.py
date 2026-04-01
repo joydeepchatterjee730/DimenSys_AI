@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Tuple
 
-from backend.engine.base_dimension import BaseDimension
+from backend.engine.types import Dimension
+from backend.engine.registry import register_dimension
 
 _FIN = re.compile(
     r"\b(invest|investment|stock|stocks|crypto|bitcoin|portfolio|trade|trading|"
@@ -36,7 +37,7 @@ def _score_text(text: str) -> Tuple[List[str], List[str], bool]:
     return fin_hits, emo_hits, harmful
 
 
-class RiskDimension(BaseDimension):
+class RiskDimension(Dimension):
     """Combine financial exposure, emotional strain, and safety-critical phrases."""
 
     @property
@@ -110,3 +111,7 @@ class RiskDimension(BaseDimension):
             "confidence": 0.64,
             "explanation": "No strong financial, emotional, or safety risk cues." + reason_tail,
         }
+
+
+# Register the dimension
+register_dimension("risk", RiskDimension)
