@@ -85,6 +85,7 @@ async def async_chat_completion(
         "temperature": temperature,
         "stream": False,
     }
+    print(f"Using model: {payload['model']}")
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
         resp = await client.post(url, headers=_headers(), json=payload)
         resp.raise_for_status()

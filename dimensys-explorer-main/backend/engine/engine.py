@@ -78,7 +78,7 @@ def _safe_run_dimension(
 
 async def _run_dimensions(
     text: str,
-    dimensions: List[BaseDimension],
+    dimensions: List[Dimension],
     *,
     parallel: bool,
     request_id: str,
@@ -90,8 +90,9 @@ async def _run_dimensions(
 
     max_workers = max(1, len(dimensions)) if parallel else 1
     t0 = time.perf_counter()
+    print(f"Running in parallel: {parallel} (workers: {max_workers}, dimensions: {len(dimensions)})")
 
-    def _run(d: BaseDimension) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
+    def _run(d: Dimension) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         return _safe_run_dimension(d, text, request_id, debug=debug)
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -123,6 +124,7 @@ async def run_analysis(
     t_pipeline_start = time.perf_counter()
 
     logger.debug("[%s] Analysis input received (length=%s) debug=%s", request_id, len(text), debug)
+    print(f"Request input: {text[:100]}{'...' if len(text) > 100 else ''}")
 
     engine_cfg: EngineConfig = load_engine_config(
         request_config,
@@ -159,6 +161,7 @@ async def run_analysis(
     )
 
     dim_results, adjustments = apply_consistency_pass(text, dim_results)
+    print(f"Dimension outputs: {[d.get('name', 'unknown') + ':' + d.get('label', 'unknown') for d in dim_results]}")
     for d in dim_results:
         if "confidence" in d:
             d["confidence"] = normalize_conf(d.get("confidence"))
@@ -168,6 +171,7 @@ async def run_analysis(
     agent_dict = await generate(dim_results, text, model=model)
     agent_time = time.perf_counter() - t_agent0
     logger.debug("[%s] Agent processing done", request_id)
+    print(f"Agent response: {agent_dict.get('response', 'No response')[:100]}{'...' if len(agent_dict.get('response', '')) > 100 else ''}")
 
     logger.debug("[%s] Fusion step start", request_id)
     t_fusion0 = time.perf_counter()
@@ -175,6 +179,8 @@ async def run_analysis(
     final_text = fuse(dim_results, agent_dict, strategy=fusion_strategy)
     fusion_time = time.perf_counter() - t_fusion0
     logger.debug("[%s] Fusion step done", request_id)
+    print(f"Fusion output: {final_text[:100]}{'...' if len(final_text) > 100 else ''}")
+    print(f"Used fusion strategy: {fusion_strategy}")
 
     total_time = time.perf_counter() - t_pipeline_start
     dim_errors = [str(d.get("error")) for d in dim_results if d.get("error")]

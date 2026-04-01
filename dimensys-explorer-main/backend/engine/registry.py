@@ -19,7 +19,13 @@ def register_dimension(name: str, cls: Type[Dimension]) -> None:
         name: Dimension name (unique identifier)
         cls: Dimension class implementation
     """
-    DIMENSION_REGISTRY[name] = cls
+    if name not in DIMENSION_REGISTRY:
+        DIMENSION_REGISTRY[name] = cls
+        print(f"Registered dimension: {name}")
+    else:
+        print(f"Dimension {name} already registered, skipping...")
+    
+    print("Registered dimensions:", list(DIMENSION_REGISTRY.keys()))
 
 
 def get_dimension(name: str) -> Type[Dimension]:

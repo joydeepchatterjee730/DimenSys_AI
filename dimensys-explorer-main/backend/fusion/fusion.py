@@ -51,11 +51,15 @@ def weighted_fusion(dimensions: List[Dict[str, Any]], agent_output: Dict[str, An
         w = weights.get(d["name"], 0.25)
         summary.append(f"{d['name']} ({w}): {d['label']}")
 
+    agent_response = agent_output.get("response", "").strip()
+    if not agent_response:
+        agent_response = "No response generated."
+
     return (
         "Based on weighted analysis:\n" + 
         "\n".join(summary) + 
         "\n\nFinal Response:\n" + 
-        agent_output["response"]
+        agent_response
     )
 
 
@@ -74,11 +78,15 @@ def attention_fusion(dimensions: List[Dict[str, Any]], agent_output: Dict[str, A
         for i, d in enumerate(dimensions):
             summary.append(f"{d['name']} ({weights[i]:.2f}): {d['label']}")
 
+        agent_response = agent_output.get("response", "").strip()
+        if not agent_response:
+            agent_response = "No response generated."
+
         return (
             "Based on attention fusion:\n" + 
             "\n".join(summary) + 
             "\n\nFinal Response:\n" + 
-            agent_output["response"]
+            agent_response
         )
     except Exception as exc:
         logger.warning("Attention fusion failed: %s, falling back to weighted", exc)
@@ -98,19 +106,27 @@ def hierarchical_fusion(dimensions: List[Dict[str, Any]], agent_output: Dict[str
     for d in sorted_dims:
         summary.append(f"{d['name']}: {d['label']}")
 
+    agent_response = agent_output.get("response", "").strip()
+    if not agent_response:
+        agent_response = "No response generated."
+
     return (
         "Based on hierarchical reasoning:\n" + 
         "\n".join(summary) + 
         "\n\nFinal Response:\n" + 
-        agent_output["response"]
+        agent_response
     )
 
 
 def ensemble_fusion(dimensions: List[Dict[str, Any]], agent_output: Dict[str, Any]) -> str:
     """Ensemble voting fusion using majority vote on labels."""
+    agent_response = agent_output.get("response", "").strip()
+    if not agent_response:
+        agent_response = "No response generated."
+    
     labels = [d["label"] for d in dimensions if not d.get("error")]
     if not labels:
-        return "Consensus decision: no valid dimensions\n\nFinal Response:\n" + agent_output["response"]
+        return "Consensus decision: no valid dimensions\n\nFinal Response:\n" + agent_response
     
     vote = Counter(labels).most_common(1)[0][0]
     vote_count = Counter(labels)[vote]
@@ -119,7 +135,7 @@ def ensemble_fusion(dimensions: List[Dict[str, Any]], agent_output: Dict[str, An
     return (
         f"Consensus decision: {vote} ({vote_count}/{total} votes)\n\n" +
         "Final Response:\n" + 
-        agent_output["response"]
+        agent_response
     )
 
 
